@@ -8,8 +8,11 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth } from "../firebase";
+import useAuth from "../hooks/useAuth";
 
 const LoginScreen = () => {
+  const { loading, setLoading } = useAuth();
+
   const [type, setType] = useState(1); //1. Login 2.signup
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,26 +28,39 @@ const LoginScreen = () => {
     if (email.trim() === "" || password.trim() === "") {
       return Alert.alert("Oh!", "You have not entered all the details.");
     }
+    setLoading(true);
     signInWithEmailAndPassword(auth, email, password)
       .then(({ user }) => {
-        console.log("LOGGED IN", user);
+        setLoading(false);
       })
       .catch((err) => {
-        console.log(err);
+        setLoading(false);
       });
   };
   const signUp = () => {
     if (name.trim() === "" || email.trim() === "" || password.trim() === "") {
       return Alert.alert("Oh!", "You have not entered all the details.");
     }
+    setLoading(true);
     createUserWithEmailAndPassword(auth, email, password)
       .then(({ user }) => {
         updateProfile(user, { displayName: name });
+        setLoading(false);
       })
       .catch((err) => {
-        console.warn("ERROR", err);
+        setLoading(false);
       });
   };
+
+  if (loading) {
+    return (
+      <View style={tw.style("flex-1 justify-center items-center")}>
+        <Text style={tw.style("font-semibold text-red-400 text-2xl")}>
+          LOADING...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ImageBackground

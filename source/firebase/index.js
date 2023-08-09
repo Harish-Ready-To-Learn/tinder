@@ -1,6 +1,11 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getApp, getApps, initializeApp } from "firebase/app";
 import { getAuth, EmailAuthProvider } from "firebase/auth";
+import {
+  getReactNativePersistence,
+  initializeAuth,
+} from "firebase/auth/react-native";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -13,8 +18,22 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth();
+let app, auth;
+
+if (!getApps().length) {
+  try {
+    app = initializeApp(firebaseConfig);
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch (error) {
+    console.log("ERROR WHILE INITIALIZING FIREBASE");
+  }
+} else {
+  app = getApp();
+  auth = getAuth(app);
+}
+
 const provider = new EmailAuthProvider();
 
 export { app, auth, provider };
