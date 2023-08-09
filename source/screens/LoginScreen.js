@@ -1,13 +1,5 @@
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Pressable,
-  Alert,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import React, { useState, useEffect } from "react";
-import { SafeAreaView } from "react-native";
 import { ImageBackground } from "react-native";
 import tw from "tailwind-react-native-classnames";
 import {
@@ -58,7 +50,7 @@ const LoginScreen = () => {
     <ImageBackground
       style={tw.style("flex-1")}
       resizeMode="cover"
-      source={require("../assets/tinderBg.png")}
+      source={require("../assets/bg.png")}
     >
       {type === 1 ? (
         <View style={tw.style("flex-1 justify-center items-center")}>
