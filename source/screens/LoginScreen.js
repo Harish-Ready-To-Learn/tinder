@@ -4,11 +4,18 @@ import {
   TextInput,
   TouchableOpacity,
   Pressable,
+  Alert,
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native";
 import { ImageBackground } from "react-native";
 import tw from "tailwind-react-native-classnames";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { auth } from "../firebase";
 
 const LoginScreen = () => {
   const [type, setType] = useState(1); //1. Login 2.signup
@@ -23,9 +30,29 @@ const LoginScreen = () => {
   }, [type]);
 
   const signIn = () => {
-    console.warn(email, password);
+    if (email.trim() === "" || password.trim() === "") {
+      return Alert.alert("Oh!", "You have not entered all the details.");
+    }
+    signInWithEmailAndPassword(auth, email, password)
+      .then(({ user }) => {
+        console.log("LOGGED IN", user);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
   };
-  const signUp = () => {};
+  const signUp = () => {
+    if (name.trim() === "" || email.trim() === "" || password.trim() === "") {
+      return Alert.alert("Oh!", "You have not entered all the details.");
+    }
+    createUserWithEmailAndPassword(auth, email, password)
+      .then(({ user }) => {
+        updateProfile(user, { displayName: name });
+      })
+      .catch((err) => {
+        console.warn("ERROR", err);
+      });
+  };
 
   return (
     <ImageBackground
