@@ -12,14 +12,14 @@ import React, { useRef } from "react";
 import tw from "tailwind-react-native-classnames";
 import useAuth from "../hooks/useAuth";
 import { Entypo, Ionicons } from "@expo/vector-icons";
-import { Swiper } from "react-native-deck-swiper";
+import Swiper from "react-native-deck-swiper";
 
 const DUMMY_DATA = [
   {
     displayName: "Harish",
     job: "React-Native Developer",
     photoURL:
-      "https://instagram.fcjb3-3.fna.fbcdn.net/v/t51.2885-19/359721711_827618455755532_3635744140856303716_n.jpg?stp=dst-jpg_s320x320&_nc_ht=instagram.fcjb3-3.fna.fbcdn.net&_nc_cat=104&_nc_ohc=3QUV0lUVAgcAX8qj3XZ&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfAbY1BpcCDHjK41DJTjDdj0fZBRQtaIAKTlkszk0md5Nw&oe=64D7B4E9&_nc_sid=8b3546",
+      "https://instagram.fcjb3-3.fna.fbcdn.net/v/t51.2885-19/359721711_827618455755532_3635744140856303716_n.jpg?stp=dst-jpg_s320x320&_nc_ht=instagram.fcjb3-3.fna.fbcdn.net&_nc_cat=104&_nc_ohc=uUgwSLYSGjUAX9Rh-4b&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfAUrSGYWgxjeo7-sxJs4epB_Hh_tGajTKhiJrHDnwDR4g&oe=64DF9DE9&_nc_sid=8b3546",
     age: 23,
     id: 1,
   },
@@ -88,6 +88,20 @@ const HomeScreen = ({ navigation }) => {
           }}
           onSwipedRight={(cardIndex) => {
             console.log("SWIPE RIGHT", cardIndex);
+          }}
+          overlayLabels={{
+            left: {
+              title: "NOPE",
+              style: {
+                label: { textAlign: "right", color: "red" },
+              },
+            },
+            right: {
+              title: "MATCH",
+              style: {
+                label: { textAlign: "left", color: "green" },
+              },
+            },
           }}
           renderCard={(card) => {
             return card ? (
