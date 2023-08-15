@@ -6,6 +6,7 @@ import {
   getReactNativePersistence,
   initializeAuth,
 } from "firebase/auth/react-native";
+import { getFirestore, serverTimestamp } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -35,5 +36,7 @@ if (!getApps().length) {
 }
 
 const provider = new EmailAuthProvider();
+const db = getFirestore();
+const timeStamp = serverTimestamp();
 
-export { app, auth, provider };
+export { app, auth, provider, db, timeStamp };

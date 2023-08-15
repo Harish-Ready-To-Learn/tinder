@@ -8,11 +8,13 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
-import React, { useRef } from "react";
+import React, { useRef, useLayoutEffect, useState } from "react";
 import tw from "tailwind-react-native-classnames";
 import useAuth from "../hooks/useAuth";
 import { Entypo, Ionicons } from "@expo/vector-icons";
 import Swiper from "react-native-deck-swiper";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
 
 const DUMMY_DATA = [
   {
@@ -43,8 +45,19 @@ const DUMMY_DATA = [
 
 const HomeScreen = ({ navigation }) => {
   const { user, logOut } = useAuth();
+  const [userData, setUserData] = useState();
 
   const swiperRef = useRef();
+
+  useLayoutEffect(() => {
+    getDoc(doc(db, "users", user.uid)).then((data) => {
+      if (!data.exists()) {
+        navigation.navigate("Modal");
+      } else {
+        setUserData(data._document.data.value.mapValue.fields);
+      }
+    });
+  }, []);
 
   return (
     <SafeAreaView
@@ -59,7 +72,9 @@ const HomeScreen = ({ navigation }) => {
           <Image
             style={tw.style("h-10 w-10 rounded-full")}
             source={{
-              uri: "https://img.freepik.com/free-icon/user_318-159711.jpg",
+              uri: userData
+                ? userData.photoUrl.stringValue
+                : "https://img.freepik.com/free-icon/user_318-159711.jpg",
             }}
           />
         </TouchableOpacity>

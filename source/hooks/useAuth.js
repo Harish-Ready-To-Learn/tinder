@@ -10,6 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    console.log("USE AUTH");
     const unSubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         console.log("USE AUTH", user);
