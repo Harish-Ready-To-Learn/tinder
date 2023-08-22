@@ -8,45 +8,29 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
-import React, { useRef, useLayoutEffect, useState } from "react";
+import React, { useRef, useLayoutEffect, useState, useEffect } from "react";
 import tw from "tailwind-react-native-classnames";
 import useAuth from "../hooks/useAuth";
 import { Entypo, Ionicons } from "@expo/vector-icons";
 import Swiper from "react-native-deck-swiper";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
-
-const DUMMY_DATA = [
-  {
-    displayName: "Harish",
-    job: "React-Native Developer",
-    photoURL:
-      "https://instagram.fcjb3-3.fna.fbcdn.net/v/t51.2885-19/359721711_827618455755532_3635744140856303716_n.jpg?stp=dst-jpg_s320x320&_nc_ht=instagram.fcjb3-3.fna.fbcdn.net&_nc_cat=104&_nc_ohc=uUgwSLYSGjUAX9Rh-4b&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfAUrSGYWgxjeo7-sxJs4epB_Hh_tGajTKhiJrHDnwDR4g&oe=64DF9DE9&_nc_sid=8b3546",
-    age: 23,
-    id: 1,
-  },
-  {
-    displayName: "Harish V",
-    job: "Programmer",
-    photoURL:
-      "https://media.licdn.com/dms/image/D5603AQESyIwkSkyxjQ/profile-displayphoto-shrink_400_400/0/1687875435163?e=1697068800&v=beta&t=0OW7HhoxgrI8IxLde2OHiNPrRT6dk-5dvTgFGAvGp2w",
-    age: 39,
-    id: 2,
-  },
-  {
-    displayName: "Justin Mateen",
-    job: "Software Developer",
-    photoURL:
-      "https://i.insider.com/606730e3856cd700198a2dd1?width=1136&format=jpeg",
-    age: 37,
-    id: 3,
-  },
-];
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  collection,
+  setDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+import { db, timeStamp } from "../firebase";
+import generateId from "../lib/generateId";
 
 const HomeScreen = ({ navigation }) => {
   const { user, logOut } = useAuth();
   const [userData, setUserData] = useState();
-
+  const [otherProfiles, setOtherProfiles] = useState([]);
+  const [swipeEnabled, setSwipeEnabled] = useState(true);
   const swiperRef = useRef();
 
   useLayoutEffect(() => {
@@ -58,6 +42,107 @@ const HomeScreen = ({ navigation }) => {
       }
     });
   }, []);
+
+  useEffect(() => {
+    let unsubscribe;
+    const fetchOtherProfiles = async () => {
+      const nope = await getDocs(
+        collection(db, "users", user.uid, "nope")
+      ).then((snapShot) => snapShot.docs.map((doc) => doc.id));
+
+      console.log("Nope", nope);
+      const match = await getDocs(
+        collection(db, "users", user.uid, "match")
+      ).then((snapShot) => snapShot.docs.map((doc) => doc.id));
+
+      console.log("match", match);
+
+      const nopeUserIds = nope.length > 0 ? nope : ["temp"];
+      const matchUserIds = match.length > 0 ? match : ["temp"];
+
+      unsubscribe = onSnapshot(
+        query(
+          collection(db, "users"),
+          where("id", "not-in", [...nopeUserIds, ...matchUserIds])
+        ),
+        (snapShot) => {
+          setOtherProfiles(
+            snapShot.docs
+              .filter((doc) => doc.id != user.uid)
+              .map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+              }))
+          );
+        }
+      );
+    };
+
+    fetchOtherProfiles();
+
+    return unsubscribe;
+  }, []);
+
+  const swipeMatch = async (cardIndex) => {
+    try {
+      if (!otherProfiles[cardIndex]) {
+        return;
+      }
+
+      const userSwiped = otherProfiles[cardIndex];
+      const loggedInProfile = await (
+        await getDoc(doc(db, "users", user.uid))
+      ).data();
+
+      console.log("loggedInProfile", loggedInProfile);
+
+      getDoc(doc(db, "users", userSwiped.id, "swipes", user.uid)).then(
+        (docSnap) => {
+          if (docSnap.exists()) {
+            setDoc(
+              doc(db, "users", user.uid, "swipes", userSwiped.id),
+              userSwiped
+            );
+            setDoc(doc(db, "matches", generateId(user.uid, userSwiped.id)), {
+              users: {
+                [user.uid]: loggedInProfile,
+                [userSwiped.id]: userSwiped,
+              },
+              usersMatched: [user.uid, userSwiped.id],
+              timeStamp,
+            });
+
+            console.log(loggedInProfile, userSwiped);
+
+            navigation.navigate("Match", {
+              loggedInProfile,
+              userSwiped,
+            });
+          } else {
+            setDoc(
+              doc(db, "users", user.uid, "swipes", userSwiped.id),
+              userSwiped
+            );
+          }
+        }
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const swipeNope = (cardIndex) => {
+    if (!otherProfiles[cardIndex]) {
+      return;
+    }
+
+    const userSwiped = otherProfiles[cardIndex];
+    setDoc(doc(db, "users", user.uid, "nope", userSwiped.id), userSwiped);
+    console.log("POP", otherProfiles.pop);
+    setOtherProfiles((otherProfiles) =>
+      otherProfiles.splice(0, otherProfiles.length)
+    );
+  };
 
   return (
     <SafeAreaView
@@ -93,16 +178,20 @@ const HomeScreen = ({ navigation }) => {
         <Swiper
           ref={swiperRef}
           containerStyle={{ backgroundColor: "transparent" }}
-          cards={DUMMY_DATA}
+          cards={otherProfiles}
           stackSize={5}
           cardIndex={0}
+          infinite={false}
           animateCardOpacity
           verticalSwipe={false}
+          horizontalSwipe={otherProfiles ? true : false}
           onSwipedLeft={(cardIndex) => {
             console.log("SWIPE LEFt", cardIndex);
+            swipeNope(cardIndex);
           }}
           onSwipedRight={(cardIndex) => {
             console.log("SWIPE RIGHT", cardIndex);
+            swipeMatch(cardIndex);
           }}
           overlayLabels={{
             left: {
@@ -119,14 +208,14 @@ const HomeScreen = ({ navigation }) => {
             },
           }}
           renderCard={(card) => {
-            return card ? (
+            return card && otherProfiles ? (
               <View
                 key={card.id}
                 style={tw.style("relative bg-white h-3/4 rounded-xl")}
               >
                 <Image
                   style={tw.style("absolute top-0 h-full w-full rounded-xl")}
-                  source={{ uri: card.photoURL }}
+                  source={{ uri: card.photoUrl }}
                 />
                 <View
                   style={tw.style(
