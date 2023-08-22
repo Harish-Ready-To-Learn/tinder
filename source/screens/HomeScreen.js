@@ -31,6 +31,7 @@ const HomeScreen = ({ navigation }) => {
   const [userData, setUserData] = useState();
   const [otherProfiles, setOtherProfiles] = useState([]);
   const [swipeEnabled, setSwipeEnabled] = useState(true);
+  const [noMore, setNoMore] = useState(false);
   const swiperRef = useRef();
 
   useLayoutEffect(() => {
@@ -44,31 +45,33 @@ const HomeScreen = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
-    let unsubscribe;
-    const fetchOtherProfiles = async () => {
-      const nope = await getDocs(
-        collection(db, "users", user.uid, "nope")
+    let unsub;
+
+    const fetchCards = async () => {
+      //comes after doing passes in swipeleft
+
+      const passes = await getDocs(
+        collection(db, "users", user.uid, "passes")
       ).then((snapShot) => snapShot.docs.map((doc) => doc.id));
 
-      console.log("Nope", nope);
-      const match = await getDocs(
-        collection(db, "users", user.uid, "match")
+      console.log(passes);
+
+      const swipes = await getDocs(
+        collection(db, "users", user.uid, "swipes")
       ).then((snapShot) => snapShot.docs.map((doc) => doc.id));
 
-      console.log("match", match);
+      const passedUserIds = passes.length > 0 ? passes : ["temp"];
+      const swipedUserIds = swipes.length > 0 ? swipes : ["temp"];
 
-      const nopeUserIds = nope.length > 0 ? nope : ["temp"];
-      const matchUserIds = match.length > 0 ? match : ["temp"];
-
-      unsubscribe = onSnapshot(
+      unsub = onSnapshot(
         query(
           collection(db, "users"),
-          where("id", "not-in", [...nopeUserIds, ...matchUserIds])
+          where("id", "not-in", [...passedUserIds, ...swipedUserIds])
         ),
         (snapShot) => {
           setOtherProfiles(
             snapShot.docs
-              .filter((doc) => doc.id != user.uid)
+              .filter((doc) => doc.id !== user.uid)
               .map((doc) => ({
                 id: doc.id,
                 ...doc.data(),
@@ -76,14 +79,30 @@ const HomeScreen = ({ navigation }) => {
           );
         }
       );
+
+      //comes before doing passes in swipeleft
+
+      // unsub = onSnapshot(collection(db, "users"), (snapShot) => {
+      //   setProfiles(
+      //     snapShot.docs
+      //       .filter((doc) => doc.id !== user.uid)
+      //       .map((doc) => ({
+      //         id: doc.id,
+      //         ...doc.data(),
+      //       }))
+      //   );
+      // });
     };
 
-    fetchOtherProfiles();
+    fetchCards();
 
-    return unsubscribe;
+    return unsub;
   }, []);
 
   const swipeMatch = async (cardIndex) => {
+    if (cardIndex === otherProfiles.length - 1) {
+      setNoMore(true);
+    }
     try {
       if (!otherProfiles[cardIndex]) {
         return;
@@ -208,7 +227,7 @@ const HomeScreen = ({ navigation }) => {
             },
           }}
           renderCard={(card) => {
-            return card && otherProfiles ? (
+            return card && !noMore ? (
               <View
                 key={card.id}
                 style={tw.style("relative bg-white h-3/4 rounded-xl")}
